@@ -1,8 +1,11 @@
+from flask import Flask
 import re
 import operator
 import urllib.request
 import zipfile
 import os
+
+log_name = 'old.log'
 
 def crack1():
     regex = re.compile(r'\[.+\] (host=old-website.com)')
@@ -11,7 +14,7 @@ def crack1():
 
     statuses = {}
 
-    log = open('old.log')
+    log = open(log_name)
 
     for l in log:
         match = re.search(regex, l)
@@ -37,7 +40,7 @@ def crack2():
 
     count = 0
 
-    log = open('old.log')
+    log = open(log_name)
     for l in log:
         match = re.search(regex, l)
         if match:
@@ -56,23 +59,35 @@ def crack3():
     print('Third part of password: ', third)
     return int(third)
 
-def application(env, start_response):
-    filez = os.listdir('tmp')
-    file_name = filez[0]
-    start_response('200 OK', [('Content-Type', 'text/html')])
-    return [b'''My github profile is <b>github.com/revan730</b><br/>
-    I'm a third year student at Kiev Polytechnic Institute,
-    faculty of information and computer technologies, software engeneering.<br/>
-    I love solving puzzles, which is why i embeded a little script that cracks
-    the password and unzips the file.
-    The password for additional tasks is cracked,
-     zip file is uncompressed, enjoy).<br/>
-    Name of uncompressed file: ''' + file_name.encode('ascii')]
-
 def unzip():
     password = str(crack1() + crack2() + crack3())
     print('password is ', password)
     with zipfile.ZipFile('/tmp/additional.zip') as zip:
         zip.extractall('./', pwd=password.encode('ascii'))
 
+def get_public_ip():
+    with urllib.request.urlopen('http://ipinfo.io/ip') as response:
+        return response.read().decode('utf-8')
+
 unzip()
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    filez = os.listdir('tmp')
+    file_name = filez[0]
+    return '''My github profile is <b>github.com/revan730</b><br/>
+    I'm a third year student at Kiev Polytechnic Institute,
+    faculty of information and computer technologies, software engineering.<br/>
+    I love solving puzzles, which is why i embeded a little script that cracks
+    the password and unzips the file.
+    The password for additional tasks is cracked,
+     zip file is uncompressed, enjoy).<br/>
+    Name of uncompressed file: ''' + file_name
+
+@app.route('/ip')
+def ip():
+    return "Host's public ip address is <b>" + get_public_ip() + "</b>"
+
+
+
